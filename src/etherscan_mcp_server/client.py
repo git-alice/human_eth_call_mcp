@@ -627,6 +627,73 @@ class EtherscanClient:
                 "contract_address": contract_address
             }
     
+    async def get_contract_creation(self, chain_id: str, contract_addresses: List[str]) -> Dict[str, Any]:
+        """
+        Get contract creator address and creation transaction hash for up to 5 contracts.
+        
+        Args:
+            chain_id: Blockchain ID
+            contract_addresses: List of contract addresses (max 5)
+            
+        Returns:
+            Contract creation information for each address
+        """
+        # Validate input
+        if not contract_addresses:
+            return {
+                "success": False,
+                "error": "Contract addresses list cannot be empty"
+            }
+        
+        if len(contract_addresses) > 5:
+            return {
+                "success": False,
+                "error": "Maximum 5 contract addresses allowed"
+            }
+        
+        # Join addresses with comma
+        addresses_param = ",".join(contract_addresses)
+        
+        params = {
+            "module": "contract",
+            "action": "getcontractcreation",
+            "contractaddresses": addresses_param
+        }
+        
+        try:
+            result = await self._make_request(chain_id, params, use_v2_api=True)
+            
+            # Process results
+            creation_info = []
+            if isinstance(result["result"], list):
+                for item in result["result"]:
+                    creation_info.append({
+                        "contract_address": item.get("contractAddress", ""),
+                        "contract_creator": item.get("contractCreator", ""),
+                        "tx_hash": item.get("txHash", "")
+                    })
+            elif isinstance(result["result"], dict):
+                # Single result format
+                creation_info.append({
+                    "contract_address": result["result"].get("contractAddress", ""),
+                    "contract_creator": result["result"].get("contractCreator", ""),
+                    "tx_hash": result["result"].get("txHash", "")
+                })
+            
+            return {
+                "success": True,
+                "requested_addresses": contract_addresses,
+                "creation_info": creation_info,
+                "network": BlockchainConfig.get_network_name(chain_id)
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "requested_addresses": contract_addresses,
+                "network": BlockchainConfig.get_network_name(chain_id)
+            }
+    
     # =============================================================================
     # Smart Contract Method Execution with ABI Encoding/Decoding
     # =============================================================================

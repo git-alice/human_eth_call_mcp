@@ -2,12 +2,14 @@
 """
 Comprehensive Test for Human ETH Call MCP Server
 
-This script tests all 5 available tools with real blockchain data:
+This script tests all 7 available tools with real blockchain data:
 1. getTokenBalance - USDC token balance
 2. getTokenDetails - USDC token details
 3. getContractABI - USDC contract ABI
 4. getContractSourceCode - USDC contract source code
 5. executeContractMethod - USDC decimals() method call
+6. getContractCreation - USDC contract creation info
+7. ethGetTransactionReceipt - Transaction receipt details
 
 Test Data:
 - Network: Ethereum Mainnet (chainID: "1")
@@ -116,6 +118,16 @@ class HumanEthCallTester:
         print("="*30)
         result = await self.test_execute_contract_method(chain_id, token_address)
         self.results[f"{chain_name}_executeContractMethod"] = result
+        
+        # Test 6: Contract Creation
+        print("="*30)
+        result = await self.test_get_contract_creation(chain_id, token_address)
+        self.results[f"{chain_name}_getContractCreation"] = result
+        
+        # Test 7: Transaction Receipt (using a known transaction hash)
+        print("="*30)
+        result = await self.test_eth_get_transaction_receipt(chain_id)
+        self.results[f"{chain_name}_ethGetTransactionReceipt"] = result
     
     async def test_get_token_balance(self, chain_id: str, token_address: str, user_address: str) -> Dict[str, Any]:
         """Test getTokenBalance tool"""
@@ -239,6 +251,69 @@ class HumanEthCallTester:
             if result["success"]:
                 decoded_data = result.get("decodedData", "N/A")
                 await self.ctx.info(f"✅ Contract method executed: decimals() = {decoded_data}")
+            else:
+                await self.ctx.error(f"❌ Failed: {result.get('error', 'Unknown error')}")
+            
+            await self.ctx.report_progress(100, 100)
+            return result
+            
+        except Exception as e:
+            await self.ctx.error(f"❌ Error: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    async def test_get_contract_creation(self, chain_id: str, token_address: str) -> Dict[str, Any]:
+        """Test getContractCreation tool"""
+        print("🏗️ Testing getContractCreation...")
+        await self.ctx.report_progress(10, 100)
+        
+        try:
+            await self.ctx.report_progress(50, 100)
+            result = await self.client.get_contract_creation(chain_id, [token_address])
+            await self.ctx.report_progress(90, 100)
+            
+            if result["success"]:
+                creation_info = result.get("creation_info", [])
+                if creation_info:
+                    creator = creation_info[0].get("contract_creator", "Unknown")
+                    tx_hash = creation_info[0].get("tx_hash", "Unknown")
+                    await self.ctx.info(f"✅ Contract creation info: Creator={creator[:10]}..., Tx={tx_hash[:10]}...")
+                else:
+                    await self.ctx.info("✅ Contract creation info retrieved (empty)")
+            else:
+                await self.ctx.error(f"❌ Failed: {result.get('error', 'Unknown error')}")
+            
+            await self.ctx.report_progress(100, 100)
+            return result
+            
+        except Exception as e:
+            await self.ctx.error(f"❌ Error: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    async def test_eth_get_transaction_receipt(self, chain_id: str) -> Dict[str, Any]:
+        """Test ethGetTransactionReceipt tool"""
+        print("🔗 Testing ethGetTransactionReceipt...")
+        await self.ctx.report_progress(10, 100)
+        
+        try:
+            # Example transaction hash for Ethereum Mainnet (replace with a real one if available)
+            # For testing, you might need to run a small transaction on the network
+            # or use a testnet transaction hash.
+            # For now, using a placeholder.
+            tx_hash = "0x1234567890123456789012345678901234567890123456789012345678901234"
+            
+            await self.ctx.report_progress(50, 100)
+            result = await self.client.get_transaction_receipt(chain_id, tx_hash)
+            await self.ctx.report_progress(90, 100)
+            
+            if result["success"]:
+                receipt = result.get("receipt", {})
+                if receipt:
+                    await self.ctx.info(f"✅ Transaction receipt retrieved for hash: {tx_hash[:10]}...")
+                    await self.ctx.info(f"  Block Number: {receipt.get('blockNumber', 'N/A')}")
+                    await self.ctx.info(f"  Transaction Hash: {receipt.get('transactionHash', 'N/A')}")
+                    await self.ctx.info(f"  Status: {receipt.get('status', 'N/A')}")
+                else:
+                    await self.ctx.info(f"✅ No receipt found for hash: {tx_hash[:10]}...")
             else:
                 await self.ctx.error(f"❌ Failed: {result.get('error', 'Unknown error')}")
             

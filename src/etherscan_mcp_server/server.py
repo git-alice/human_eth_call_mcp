@@ -3,12 +3,14 @@
 Etherscan MCP Server
 
 A focused MCP (Model Context Protocol) server for interacting with Etherscan API.
-Provides essential tools for token operations and smart contract interactions.
+Provides 7 essential tools for token operations and smart contract interactions.
 
 Features:
 - Token balance and details retrieval
 - Smart contract ABI and source code access
+- Contract creation information (deployer address and creation tx hash)
 - Contract method execution with automatic ABI encoding/decoding
+- Transaction receipt information with status, gas usage, and logs
 - Multi-chain support (Ethereum, BSC, Polygon, Arbitrum, Optimism, etc.)
 """
 
@@ -215,6 +217,65 @@ async def getContractSourceCode(
 
 
 @mcp.tool()
+async def getContractCreation(
+    chainID: str,
+    contractAddresses: str,
+    ctx: Context
+) -> Dict[str, Any]:
+    """
+    Get contract creator address and creation transaction hash for up to 5 contracts.
+    
+    Args:
+        chainID: Blockchain ID (e.g., "1" for Ethereum, "56" for BSC, "137" for Polygon)
+        contractAddresses: Comma-separated list of contract addresses (max 5)
+        
+    Returns:
+        Contract creation information including deployer address and creation tx hash
+    """
+    # Parse contract addresses
+    addresses_list = [addr.strip() for addr in contractAddresses.split(",") if addr.strip()]
+    
+    if not addresses_list:
+        return {
+            "success": False,
+            "error": "No valid contract addresses provided"
+        }
+    
+    if len(addresses_list) > 5:
+        return {
+            "success": False,
+            "error": "Maximum 5 contract addresses allowed"
+        }
+    
+    await ctx.info(f"Getting contract creation info for {len(addresses_list)} contract(s) on {BlockchainConfig.get_network_name(chainID)}")
+    await ctx.report_progress(10, 100)
+    
+    async with EtherscanClient() as client:
+        try:
+            await ctx.report_progress(50, 100)
+            result = await client.get_contract_creation(chainID, addresses_list)
+            await ctx.report_progress(90, 100)
+            
+            if result["success"]:
+                creation_count = len(result.get("creation_info", []))
+                await ctx.info(f"Contract creation info retrieved for {creation_count} contract(s)")
+            else:
+                await ctx.error(f"Failed to get contract creation info: {result.get('error', 'Unknown error')}")
+            
+            await ctx.report_progress(100, 100)
+            return result
+            
+        except Exception as e:
+            await ctx.error(f"Error getting contract creation info: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "requested_addresses": addresses_list,
+                "network": BlockchainConfig.get_network_name(chainID)
+            }
+
+
+@mcp.tool()
 async def executeContractMethod(
     chainID: str,
     contractAddress: str,
@@ -260,6 +321,55 @@ async def executeContractMethod(
                 "contract_address": contractAddress,
                 "method_abi": methodABI,
                 "method_params": methodParams,
+                "network": BlockchainConfig.get_network_name(chainID)
+            }
+
+
+@mcp.tool()
+async def ethGetTransactionReceipt(
+    chainID: str,
+    txHash: str,
+    ctx: Context
+) -> Dict[str, Any]:
+    """
+    Get transaction receipt information including status, gas usage, and logs.
+    
+    Args:
+        chainID: Blockchain ID (e.g., "1" for Ethereum, "56" for BSC, "137" for Polygon)
+        txHash: The transaction hash to get receipt for
+        
+    Returns:
+        Transaction receipt with status, gas usage, logs, and other details
+    """
+    await ctx.info(f"Getting transaction receipt for {txHash} on {BlockchainConfig.get_network_name(chainID)}")
+    await ctx.report_progress(10, 100)
+    
+    async with EtherscanClient() as client:
+        try:
+            await ctx.report_progress(50, 100)
+            result = await client.get_transaction_receipt(chainID, txHash)
+            await ctx.report_progress(90, 100)
+            
+            if result["success"]:
+                receipt = result.get("receipt", {})
+                if receipt:
+                    status = receipt.get("status", "unknown")
+                    gas_used = receipt.get("gasUsed", "unknown")
+                    await ctx.info(f"Transaction receipt retrieved: Status={status}, Gas Used={gas_used}")
+                else:
+                    await ctx.info("Transaction receipt retrieved (empty or pending)")
+            else:
+                await ctx.error(f"Failed to get transaction receipt: {result.get('error', 'Unknown error')}")
+            
+            await ctx.report_progress(100, 100)
+            return result
+            
+        except Exception as e:
+            await ctx.error(f"Error getting transaction receipt: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "tx_hash": txHash,
                 "network": BlockchainConfig.get_network_name(chainID)
             }
 
