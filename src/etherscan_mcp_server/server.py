@@ -3,14 +3,15 @@
 Etherscan MCP Server
 
 A focused MCP (Model Context Protocol) server for interacting with Etherscan API.
-Provides 7 essential tools for token operations and smart contract interactions.
+Provides 8 essential tools for token operations and smart contract interactions.
 
 Features:
 - Token balance and details retrieval
 - Smart contract ABI and source code access
-- Contract creation information (deployer address and creation tx hash)
+- Contract creation information (deployer address and creation tx hash) - supports up to 5 contracts
 - Contract method execution with automatic ABI encoding/decoding
 - Transaction receipt information with status, gas usage, and logs
+- Batch transaction receipts retrieval - supports up to 5 transactions
 - Multi-chain support (Ethereum, BSC, Polygon, Arbitrum, Optimism, etc.)
 """
 
@@ -370,6 +371,71 @@ async def ethGetTransactionReceipt(
                 "success": False,
                 "error": str(e),
                 "tx_hash": txHash,
+                "network": BlockchainConfig.get_network_name(chainID)
+            }
+
+
+@mcp.tool()
+async def ethGetTransactionReceipts(
+    chainID: str,
+    txHashes: str,
+    ctx: Context
+) -> Dict[str, Any]:
+    """
+    Get transaction receipts for up to 5 transactions.
+    
+    Args:
+        chainID: Blockchain ID (e.g., "1" for Ethereum, "56" for BSC, "137" for Polygon)
+        txHashes: Comma-separated list of transaction hashes (max 5)
+        
+    Returns:
+        Transaction receipts with status, gas usage, logs, and other details for each hash
+    """
+    # Parse transaction hashes
+    hashes_list = [tx_hash.strip() for tx_hash in txHashes.split(",") if tx_hash.strip()]
+    
+    if not hashes_list:
+        return {
+            "success": False,
+            "error": "No valid transaction hashes provided"
+        }
+    
+    if len(hashes_list) > 5:
+        return {
+            "success": False,
+            "error": "Maximum 5 transaction hashes allowed"
+        }
+    
+    await ctx.info(f"Getting transaction receipts for {len(hashes_list)} transaction(s) on {BlockchainConfig.get_network_name(chainID)}")
+    await ctx.report_progress(10, 100)
+    
+    async with EtherscanClient() as client:
+        try:
+            await ctx.report_progress(50, 100)
+            result = await client.get_transaction_receipts(chainID, hashes_list)
+            await ctx.report_progress(90, 100)
+            
+            if result["success"]:
+                successful_count = result.get("successful_count", 0)
+                total_requested = result.get("total_requested", 0)
+                await ctx.info(f"Transaction receipts retrieved for {successful_count}/{total_requested} transaction(s)")
+                
+                # Report any errors
+                errors = result.get("errors")
+                if errors:
+                    await ctx.info(f"Some receipts failed: {'; '.join(errors[:3])}")  # Show first 3 errors
+            else:
+                await ctx.error(f"Failed to get transaction receipts: {result.get('error', 'Unknown error')}")
+            
+            await ctx.report_progress(100, 100)
+            return result
+            
+        except Exception as e:
+            await ctx.error(f"Error getting transaction receipts: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "requested_hashes": hashes_list,
                 "network": BlockchainConfig.get_network_name(chainID)
             }
 

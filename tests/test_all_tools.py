@@ -2,14 +2,15 @@
 """
 Comprehensive Test for Human ETH Call MCP Server
 
-This script tests all 7 available tools with real blockchain data:
+This script tests all 8 available tools with real blockchain data:
 1. getTokenBalance - USDC token balance
 2. getTokenDetails - USDC token details
 3. getContractABI - USDC contract ABI
 4. getContractSourceCode - USDC contract source code
 5. executeContractMethod - USDC decimals() method call
 6. getContractCreation - USDC contract creation info
-7. ethGetTransactionReceipt - Transaction receipt details
+7. ethGetTransactionReceipt - Single transaction receipt details
+8. ethGetTransactionReceipts - Multiple transaction receipts (up to 5)
 
 Test Data:
 - Network: Ethereum Mainnet (chainID: "1")
@@ -128,6 +129,11 @@ class HumanEthCallTester:
         print("="*30)
         result = await self.test_eth_get_transaction_receipt(chain_id)
         self.results[f"{chain_name}_ethGetTransactionReceipt"] = result
+        
+        # Test 8: Multiple Transaction Receipts
+        print("="*30)
+        result = await self.test_eth_get_transaction_receipts(chain_id)
+        self.results[f"{chain_name}_ethGetTransactionReceipts"] = result
     
     async def test_get_token_balance(self, chain_id: str, token_address: str, user_address: str) -> Dict[str, Any]:
         """Test getTokenBalance tool"""
@@ -314,6 +320,53 @@ class HumanEthCallTester:
                     await self.ctx.info(f"  Status: {receipt.get('status', 'N/A')}")
                 else:
                     await self.ctx.info(f"✅ No receipt found for hash: {tx_hash[:10]}...")
+            else:
+                await self.ctx.error(f"❌ Failed: {result.get('error', 'Unknown error')}")
+            
+            await self.ctx.report_progress(100, 100)
+            return result
+            
+        except Exception as e:
+            await self.ctx.error(f"❌ Error: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    async def test_eth_get_transaction_receipts(self, chain_id: str) -> Dict[str, Any]:
+        """Test ethGetTransactionReceipts tool (multiple receipts)"""
+        print("🔗🔗 Testing ethGetTransactionReceipts...")
+        await self.ctx.report_progress(10, 100)
+        
+        try:
+            # Example transaction hashes for testing (placeholders)
+            # For real testing, use actual transaction hashes from the network
+            tx_hashes = [
+                "0x1234567890123456789012345678901234567890123456789012345678901234",
+                "0x5678901234567890123456789012345678901234567890123456789012345678",
+                "0x9012345678901234567890123456789012345678901234567890123456789012"
+            ]
+            
+            await self.ctx.report_progress(50, 100)
+            result = await self.client.get_transaction_receipts(chain_id, tx_hashes)
+            await self.ctx.report_progress(90, 100)
+            
+            if result["success"]:
+                successful_count = result.get("successful_count", 0)
+                total_requested = result.get("total_requested", 0)
+                await self.ctx.info(f"✅ Multiple transaction receipts processed: {successful_count}/{total_requested} successful")
+                
+                receipts_info = result.get("receipts_info", [])
+                for receipt_info in receipts_info[:3]:  # Show first 3 results
+                    tx_hash = receipt_info.get("tx_hash", "Unknown")
+                    success = receipt_info.get("success", False)
+                    if success:
+                        receipt = receipt_info.get("receipt", {})
+                        await self.ctx.info(f"  {tx_hash[:10]}...: ✅ Receipt found")
+                    else:
+                        error = receipt_info.get("error", "Unknown error")
+                        await self.ctx.info(f"  {tx_hash[:10]}...: ❌ {error}")
+                
+                errors = result.get("errors")
+                if errors:
+                    await self.ctx.info(f"Some receipts failed: {len(errors)} error(s)")
             else:
                 await self.ctx.error(f"❌ Failed: {result.get('error', 'Unknown error')}")
             

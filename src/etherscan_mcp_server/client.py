@@ -1147,6 +1147,82 @@ class EtherscanClient:
                 "network": BlockchainConfig.get_network_name(chain_id)
             }
     
+    async def get_transaction_receipts(self, chain_id: str, tx_hashes: List[str]) -> Dict[str, Any]:
+        """
+        Get transaction receipts for up to 5 transactions.
+        
+        Args:
+            chain_id: Blockchain ID
+            tx_hashes: List of transaction hashes (max 5)
+            
+        Returns:
+            Transaction receipts for each hash
+        """
+        # Validate input
+        if not tx_hashes:
+            return {
+                "success": False,
+                "error": "Transaction hashes list cannot be empty"
+            }
+        
+        if len(tx_hashes) > 5:
+            return {
+                "success": False,
+                "error": "Maximum 5 transaction hashes allowed"
+            }
+        
+        try:
+            # Get receipts for each transaction
+            receipts_info = []
+            errors = []
+            
+            for tx_hash in tx_hashes:
+                try:
+                    receipt_result = await self.get_transaction_receipt(chain_id, tx_hash)
+                    if receipt_result["success"]:
+                        receipts_info.append({
+                            "tx_hash": tx_hash,
+                            "receipt": receipt_result["receipt"],
+                            "success": True
+                        })
+                    else:
+                        receipts_info.append({
+                            "tx_hash": tx_hash,
+                            "receipt": None,
+                            "success": False,
+                            "error": receipt_result.get("error", "Unknown error")
+                        })
+                        errors.append(f"{tx_hash}: {receipt_result.get('error', 'Unknown error')}")
+                except Exception as e:
+                    receipts_info.append({
+                        "tx_hash": tx_hash,
+                        "receipt": None,
+                        "success": False,
+                        "error": str(e)
+                    })
+                    errors.append(f"{tx_hash}: {str(e)}")
+            
+            # Check if we have any successful results
+            successful_count = sum(1 for r in receipts_info if r["success"])
+            
+            return {
+                "success": True,
+                "requested_hashes": tx_hashes,
+                "receipts_info": receipts_info,
+                "successful_count": successful_count,
+                "total_requested": len(tx_hashes),
+                "errors": errors if errors else None,
+                "network": BlockchainConfig.get_network_name(chain_id)
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "requested_hashes": tx_hashes,
+                "network": BlockchainConfig.get_network_name(chain_id)
+            }
+    
     async def get_transaction_status(self, chain_id: str, tx_hash: str) -> Dict[str, Any]:
         """
         Check contract execution status.

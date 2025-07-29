@@ -31,9 +31,10 @@ bash scripts/cursor-install-mcp.sh
 
 ## ✨ Features
 
-- **7 Essential Tools**: Token balance, details, ABI, source code, method execution, contract creation info, and transaction receipts
+- **8 Essential Tools**: Token balance, details, ABI, source code, method execution, contract creation info, and transaction receipts (single & batch)
 - **Universal Chain Support**: All EVM-compatible blockchains via API v2
 - **Automatic ABI Encoding/Decoding**: Seamless contract interactions
+- **Batch Operations**: Get multiple contract creation info and transaction receipts in one call
 
 ## 🔧 Available Tools
 
@@ -43,7 +44,8 @@ bash scripts/cursor-install-mcp.sh
 4. **getContractSourceCode** - Get contract source code
 5. **executeContractMethod** - Execute contract methods with auto encoding/decoding
 6. **getContractCreation** - Get contract deployer address and creation transaction hash (up to 5 contracts)
-7. **ethGetTransactionReceipt** - Get transaction receipt with status, gas usage, and logs
+7. **ethGetTransactionReceipt** - Get single transaction receipt with status, gas usage, and logs
+8. **ethGetTransactionReceipts** - Get multiple transaction receipts (up to 5 transactions) with status, gas usage, and logs
 
 ## 📝 Configuration
 
