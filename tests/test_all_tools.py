@@ -340,6 +340,7 @@ class HumanEthCallTester:
             # Example transaction hashes for testing (placeholders)
             # For real testing, use actual transaction hashes from the network
             tx_hashes = [
+                "0xf5912e29220de781e28bdc97c2c7df4b38d1cf2a0a6c0b8ec41da80ca7b84cc5", # BSC Transaction
                 "0x1234567890123456789012345678901234567890123456789012345678901234",
                 "0x5678901234567890123456789012345678901234567890123456789012345678",
                 "0x9012345678901234567890123456789012345678901234567890123456789012",
@@ -356,10 +357,9 @@ class HumanEthCallTester:
                 "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
                 "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
                 "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
-                "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
                 "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
-                "0x0000000000000000000000000000000000000000000000000000000000000001",
-                "0x0000000000000000000000000000000000000000000000000000000000000002"
+                "0x0000000000000000000000000000000000000000000000000000000000000000"
             ]
             
             await self.ctx.report_progress(50, 100)
