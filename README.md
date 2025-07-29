@@ -1,5 +1,7 @@
 # Human ETH Call MCP Server
 
+[![asciicast](https://asciinema.org/a/rcqanivzNeegQkYm8VFImiucd.svg)](https://asciinema.org/a/rcqanivzNeegQkYm8VFImiucd)
+
 A focused MCP (Model Context Protocol) server for token operations and smart contract interactions with Etherscan API.
 
 ## 🚀 Quick Start
@@ -25,6 +27,7 @@ bash scripts/cursor-install-mcp.sh
 4. **Ready to use!** 🎉
 
 **Note:** The API key is also stored in `~/.cursor/mcp.json` for Cursor IDE integration.
+
 
 ## ✨ Features
 
