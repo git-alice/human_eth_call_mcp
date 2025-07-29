@@ -1135,15 +1135,61 @@ class EtherscanClient:
         
         try:
             result = await self._make_request(chain_id, params, use_v2_api=True)
+            if result["success"]:
+                receipt_data = result["result"]
+
+                # If receipt_data is None or not a dictionary, handle as no receipt found
+                if not receipt_data or not isinstance(receipt_data, dict):
+                    return {
+                        "success": True,
+                        "receipt": None,
+                        "message": "No receipt found for this transaction hash or transaction is pending, or API returned non-object result.",
+                        "network": BlockchainConfig.get_network_name(chain_id)
+                    }
+
+                formatted_receipt = {
+                    "tx_hash": tx_hash,
+                    "blockNumber": int(receipt_data["blockNumber"], 16) if "blockNumber" in receipt_data and isinstance(receipt_data["blockNumber"], str) and receipt_data["blockNumber"].startswith("0x") else receipt_data.get("blockNumber"),
+                    "contractAddress": receipt_data.get("contractAddress"),
+                    "from": receipt_data.get("from"),
+                    "logs": []
+                }
+
+                if "logs" in receipt_data and isinstance(receipt_data["logs"], list):
+                    for log in receipt_data["logs"]:
+                        formatted_log = {
+                            "address": log.get("address"),
+                            "topics": log.get("topics", []),
+                            "data": log.get("data"),
+                            "logIndex": int(log["logIndex"], 16) if "logIndex" in log and isinstance(log["logIndex"], str) and log["logIndex"].startswith("0x") else log.get("logIndex")
+                        }
+                        formatted_receipt["logs"].append(formatted_log)
+                
+                return {
+                    "success": True,
+                    "receipt": formatted_receipt,
+                    "network": BlockchainConfig.get_network_name(chain_id)
+                }
+            else:
+                # This part should ideally not be reached if _make_request raises EtherscanAPIError
+                # but keeping for robustness if _make_request returns success=False without raising
+                return {
+                    "success": False,
+                    "error": result.get("error", "Unknown error from API"),
+                    "network": BlockchainConfig.get_network_name(chain_id)
+                }
+        except EtherscanAPIError as e:
             return {
-                "success": True,
-                "receipt": result["result"],
+                "success": False,
+                "error": str(e),
+                "tx_hash": tx_hash,
                 "network": BlockchainConfig.get_network_name(chain_id)
             }
         except Exception as e:
             return {
                 "success": False,
-                "error": str(e),
+                "error": f"Unexpected error during receipt retrieval: {str(e)}",
+                "tx_hash": tx_hash,
                 "network": BlockchainConfig.get_network_name(chain_id)
             }
     
@@ -1182,7 +1228,7 @@ class EtherscanClient:
                     if receipt_result["success"]:
                         receipts_info.append({
                             "tx_hash": tx_hash,
-                            "receipt": receipt_result["receipt"],
+                            "receipt": receipt_result.get("receipt"), # Get the receipt (can be None)
                             "success": True
                         })
                     else:
@@ -1203,7 +1249,7 @@ class EtherscanClient:
                     errors.append(f"{tx_hash}: {str(e)}")
             
             # Check if we have any successful results
-            successful_count = sum(1 for r in receipts_info if r["success"])
+            successful_count = sum(1 for r in receipts_info if r["success"] and r["receipt"] is not None)
             
             return {
                 "success": True,

@@ -316,8 +316,9 @@ class HumanEthCallTester:
                 if receipt:
                     await self.ctx.info(f"✅ Transaction receipt retrieved for hash: {tx_hash[:10]}...")
                     await self.ctx.info(f"  Block Number: {receipt.get('blockNumber', 'N/A')}")
-                    await self.ctx.info(f"  Transaction Hash: {receipt.get('transactionHash', 'N/A')}")
-                    await self.ctx.info(f"  Status: {receipt.get('status', 'N/A')}")
+                    await self.ctx.info(f"  Contract Address: {receipt.get('contractAddress', 'N/A')}")
+                    await self.ctx.info(f"  From: {receipt.get('from', 'N/A')}")
+                    await self.ctx.info(f"  Logs Count: {len(receipt.get('logs', []))}")
                 else:
                     await self.ctx.info(f"✅ No receipt found for hash: {tx_hash[:10]}...")
             else:
@@ -374,11 +375,15 @@ class HumanEthCallTester:
                 for receipt_info in receipts_info[:5]:  # Show first 5 results
                     tx_hash = receipt_info.get("tx_hash", "Unknown")
                     success = receipt_info.get("success", False)
-                    if success:
-                        receipt = receipt_info.get("receipt", {})
-                        await self.ctx.info(f"  {tx_hash[:10]}...: ✅ Receipt found")
+                    if success and receipt_info.get("receipt"):
+                        receipt = receipt_info["receipt"]
+                        block_number = receipt.get("blockNumber", "N/A")
+                        contract_address = receipt.get("contractAddress", "N/A")
+                        from_address = receipt.get("from", "N/A")
+                        logs_count = len(receipt.get("logs", []))
+                        await self.ctx.info(f"  {tx_hash[:10]}...: ✅ Receipt found (Block={block_number}, Contract={contract_address}, From={from_address}, Logs={logs_count})")
                     else:
-                        error = receipt_info.get("error", "Unknown error")
+                        error = receipt_info.get("error", "No receipt found or error occurred")
                         await self.ctx.info(f"  {tx_hash[:10]}...: ❌ {error}")
                 
                 errors = result.get("errors")

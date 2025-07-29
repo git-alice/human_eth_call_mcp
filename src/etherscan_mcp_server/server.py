@@ -354,9 +354,11 @@ async def ethGetTransactionReceipt(
             if result["success"]:
                 receipt = result.get("receipt", {})
                 if receipt:
-                    status = receipt.get("status", "unknown")
-                    gas_used = receipt.get("gasUsed", "unknown")
-                    await ctx.info(f"Transaction receipt retrieved: Status={status}, Gas Used={gas_used}")
+                    block_number = receipt.get("blockNumber", "N/A")
+                    contract_address = receipt.get("contractAddress", "N/A")
+                    from_address = receipt.get("from", "N/A")
+                    logs_count = len(receipt.get("logs", []))
+                    await ctx.info(f"Transaction receipt retrieved: Block={block_number}, Contract={contract_address}, From={from_address}, Logs={logs_count}")
                 else:
                     await ctx.info("Transaction receipt retrieved (empty or pending)")
             else:
