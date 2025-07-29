@@ -1,0 +1,312 @@
+#!/usr/bin/env python3
+"""
+Comprehensive Test for Human ETH Call MCP Server
+
+This script tests all 5 available tools with real blockchain data:
+1. getTokenBalance - USDC token balance
+2. getTokenDetails - USDC token details
+3. getContractABI - USDC contract ABI
+4. getContractSourceCode - USDC contract source code
+5. executeContractMethod - USDC decimals() method call
+
+Test Data:
+- Network: Ethereum Mainnet (chainID: "1")
+- Token: USDC (0xA0b86991c431C15C59c7a3C9bcf0d8A0B5c3f1E7)
+- Address: Vitalik's address (0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045)
+"""
+
+import asyncio
+import json
+import os
+import sys
+import time
+from typing import Dict, Any
+
+# Add src to path for imports
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+
+from etherscan_mcp_server import EtherscanClient, BlockchainConfig
+
+
+class MockContext:
+    """Mock context for testing without MCP server"""
+    
+    async def info(self, message: str):
+        print(f"ℹ️  {message}")
+    
+    async def error(self, message: str):
+        print(f"❌ {message}")
+    
+    async def report_progress(self, current: int, total: int):
+        percentage = (current / total) * 100
+        print(f"📊 Progress: {percentage:.1f}% ({current}/{total})")
+
+
+class HumanEthCallTester:
+    """Comprehensive tester for all Human ETH Call MCP tools"""
+    
+    def __init__(self):
+        self.client = None
+        self.ctx = MockContext()
+        
+        # Test configuration - multiple chains
+        self.test_configs = [
+            {
+                "chain_id": "1",  # Ethereum Mainnet
+                "token_address": "0xA0b86991c431C15C59c7a3C9bcf0d8A0B5c3f1E7",  # USDC
+                "user_address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",  # Vitalik
+                "name": "Ethereum Mainnet"
+            },
+            {
+                "chain_id": "137",  # Polygon
+                "token_address": "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",  # USDC on Polygon
+                "user_address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",  # Vitalik
+                "name": "Polygon"
+            },
+            {
+                "chain_id": "42161",  # Arbitrum
+                "token_address": "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",  # USDC on Arbitrum
+                "user_address": "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",  # Vitalik
+                "name": "Arbitrum"
+            }
+        ]
+        
+        # Test results
+        self.results = {}
+    
+    async def setup(self):
+        """Initialize the client"""
+        print("🚀 Setting up Human ETH Call MCP tester...")
+        self.client = EtherscanClient()
+        print()
+    
+    async def test_chain(self, config: dict):
+        """Test all tools for a specific chain configuration"""
+        chain_id = config["chain_id"]
+        token_address = config["token_address"]
+        user_address = config["user_address"]
+        chain_name = config["name"]
+        
+        print(f"🌐 Testing on {chain_name} (Chain ID: {chain_id})")
+        await self.ctx.info(f"Token: USDC ({token_address})")
+        await self.ctx.info(f"Address: {user_address}")
+        print()
+        
+        # Test 1: Token Balance
+        print("="*30)
+        result = await self.test_get_token_balance(chain_id, token_address, user_address)
+        self.results[f"{chain_name}_getTokenBalance"] = result
+        
+        # Test 2: Token Details
+        print("="*30)
+        result = await self.test_get_token_details(chain_id, token_address)
+        self.results[f"{chain_name}_getTokenDetails"] = result
+        
+        # Test 3: Contract ABI
+        print("="*30)
+        result = await self.test_get_contract_abi(chain_id, token_address)
+        self.results[f"{chain_name}_getContractABI"] = result
+        
+        # Test 4: Contract Source Code
+        print("="*30)
+        result = await self.test_get_contract_source_code(chain_id, token_address)
+        self.results[f"{chain_name}_getContractSourceCode"] = result
+        
+        # Test 5: Execute Contract Method
+        print("="*30)
+        result = await self.test_execute_contract_method(chain_id, token_address)
+        self.results[f"{chain_name}_executeContractMethod"] = result
+    
+    async def test_get_token_balance(self, chain_id: str, token_address: str, user_address: str) -> Dict[str, Any]:
+        """Test getTokenBalance tool"""
+        print("🪙 Testing getTokenBalance...")
+        await self.ctx.report_progress(10, 100)
+        
+        try:
+            await self.ctx.report_progress(50, 100)
+            result = await self.client.get_token_balance(chain_id, token_address, user_address)
+            await self.ctx.report_progress(90, 100)
+            
+            if result["success"]:
+                balance = result.get('balance_formatted', 'N/A')
+                await self.ctx.info(f"✅ Token balance: {balance} USDC")
+            else:
+                await self.ctx.error(f"❌ Failed: {result.get('error', 'Unknown error')}")
+            
+            await self.ctx.report_progress(100, 100)
+            return result
+            
+        except Exception as e:
+            await self.ctx.error(f"❌ Error: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    async def test_get_token_details(self, chain_id: str, token_address: str) -> Dict[str, Any]:
+        """Test getTokenDetails tool"""
+        print("📋 Testing getTokenDetails...")
+        await self.ctx.report_progress(10, 100)
+        
+        try:
+            await self.ctx.report_progress(50, 100)
+            result = await self.client.get_token_details(chain_id, token_address)
+            await self.ctx.report_progress(90, 100)
+            
+            if result["success"]:
+                token_info = result.get("token_details", {})
+                name = token_info.get('name', 'Unknown')
+                symbol = token_info.get('symbol', 'Unknown')
+                decimals = token_info.get('decimals', 'Unknown')
+                await self.ctx.info(f"✅ Token details: {name} ({symbol}) - {decimals} decimals")
+            else:
+                await self.ctx.error(f"❌ Failed: {result.get('error', 'Unknown error')}")
+            
+            await self.ctx.report_progress(100, 100)
+            return result
+            
+        except Exception as e:
+            await self.ctx.error(f"❌ Error: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    async def test_get_contract_abi(self, chain_id: str, token_address: str) -> Dict[str, Any]:
+        """Test getContractABI tool"""
+        print("📜 Testing getContractABI...")
+        await self.ctx.report_progress(10, 100)
+        
+        try:
+            await self.ctx.report_progress(50, 100)
+            result = await self.client.get_contract_abi(chain_id, token_address)
+            await self.ctx.report_progress(90, 100)
+            
+            if result["success"]:
+                abi = result.get("abi", "")
+                if abi:
+                    await self.ctx.info(f"✅ Contract ABI retrieved ({len(abi)} characters)")
+                else:
+                    await self.ctx.info("✅ Contract ABI retrieved (empty)")
+            else:
+                await self.ctx.error(f"❌ Failed: {result.get('error', 'Unknown error')}")
+            
+            await self.ctx.report_progress(100, 100)
+            return result
+            
+        except Exception as e:
+            await self.ctx.error(f"❌ Error: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    async def test_get_contract_source_code(self, chain_id: str, token_address: str) -> Dict[str, Any]:
+        """Test getContractSourceCode tool"""
+        print("📄 Testing getContractSourceCode...")
+        await self.ctx.report_progress(10, 100)
+        
+        try:
+            await self.ctx.report_progress(50, 100)
+            result = await self.client.get_contract_source_code(chain_id, token_address)
+            await self.ctx.report_progress(90, 100)
+            
+            if result["success"]:
+                source_code = result.get("source_code", "")
+                if source_code:
+                    await self.ctx.info(f"✅ Contract source code retrieved ({len(source_code)} characters)")
+                else:
+                    await self.ctx.info("✅ Contract source code retrieved (empty)")
+            else:
+                await self.ctx.error(f"❌ Failed: {result.get('error', 'Unknown error')}")
+            
+            await self.ctx.report_progress(100, 100)
+            return result
+            
+        except Exception as e:
+            await self.ctx.error(f"❌ Error: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    async def test_execute_contract_method(self, chain_id: str, token_address: str) -> Dict[str, Any]:
+        """Test executeContractMethod tool"""
+        print("⚡ Testing executeContractMethod...")
+        await self.ctx.report_progress(10, 100)
+        
+        try:
+            # USDC decimals() method ABI
+            method_abi = '{"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"}'
+            
+            await self.ctx.report_progress(30, 100)
+            result = await self.client.execute_contract_method(
+                chain_id, 
+                token_address, 
+                method_abi, 
+                ""  # No parameters for decimals()
+            )
+            await self.ctx.report_progress(90, 100)
+            
+            if result["success"]:
+                decoded_data = result.get("decodedData", "N/A")
+                await self.ctx.info(f"✅ Contract method executed: decimals() = {decoded_data}")
+            else:
+                await self.ctx.error(f"❌ Failed: {result.get('error', 'Unknown error')}")
+            
+            await self.ctx.report_progress(100, 100)
+            return result
+            
+        except Exception as e:
+            await self.ctx.error(f"❌ Error: {str(e)}")
+            return {"success": False, "error": str(e)}
+    
+    async def run_all_tests(self):
+        """Run all tests on multiple chains"""
+        print("🎯 HUMAN ETH CALL MCP - MULTI-CHAIN TEST")
+        print("=" * 50)
+        
+        await self.setup()
+        
+        # Test each chain configuration
+        for i, config in enumerate(self.test_configs):
+            if i > 0:
+                print("\n" + "="*50)
+                print("🔄 SWITCHING TO NEXT CHAIN")
+                print("="*50)
+            
+            await self.test_chain(config)
+        
+        # Summary
+        await self.print_summary()
+    
+    async def print_summary(self):
+        """Print test summary"""
+        print("\n" + "="*50)
+        print("📊 TEST SUMMARY")
+        print("="*50)
+        
+        total_tests = len(self.results)
+        successful_tests = sum(1 for result in self.results.values() if result.get("success", False))
+        
+        print(f"Total tests: {total_tests}")
+        print(f"Successful: {successful_tests}")
+        print(f"Failed: {total_tests - successful_tests}")
+        print(f"Success rate: {(successful_tests/total_tests)*100:.1f}%")
+        
+        print("\n📋 DETAILED RESULTS:")
+        for tool_name, result in self.results.items():
+            status = "✅ PASS" if result.get("success", False) else "❌ FAIL"
+            print(f"  {tool_name}: {status}")
+            if not result.get("success", False):
+                error = result.get("error", "Unknown error")
+                print(f"    Error: {error}")
+        
+        print("\n🎉 HUMAN ETH CALL MCP TEST COMPLETE!")
+    
+    async def cleanup(self):
+        """Cleanup resources"""
+        if self.client:
+            await self.client.close()
+
+
+async def main():
+    """Main test runner"""
+    tester = HumanEthCallTester()
+    
+    try:
+        await tester.run_all_tests()
+    finally:
+        await tester.cleanup()
+
+
+if __name__ == "__main__":
+    asyncio.run(main()) 

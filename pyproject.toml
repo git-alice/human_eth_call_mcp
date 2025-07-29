@@ -1,0 +1,176 @@
+[project]
+name = "human-eth-call-mcp"
+version = "1.0.0"
+description = "A focused MCP (Model Context Protocol) server for token operations and smart contract interactions with Etherscan API"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "MCP Etherscan Server", email = "art.oxbow@gmail.com"}
+]
+keywords = ["mcp", "etherscan", "blockchain", "ethereum", "smart-contracts", "web3", "uv", "human-eth-call"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.25.0",
+    "python-dotenv>=1.0.0", 
+    "mcp>=1.0.0",
+    "eth-abi>=4.0.0",
+    "eth-utils>=2.0.0",
+    "eth-hash[pycryptodome]>=0.5.0",
+    "pydantic>=2.0.0",
+    "click>=8.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-httpx>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "ruff>=0.1.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-httpx>=0.21.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+human-eth-call-mcp = "etherscan_mcp_server.server:main"
+
+[project.urls]
+Homepage = "https://github.com/yourusername/human-eth-call-mcp"
+Repository = "https://github.com/yourusername/human-eth-call-mcp"
+Documentation = "https://github.com/yourusername/human-eth-call-mcp#readme"
+"Bug Reports" = "https://github.com/yourusername/human-eth-call-mcp/issues"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+path = "src/etherscan_mcp_server/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/etherscan_mcp_server"]
+
+# UV-specific configuration
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-httpx>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+    "ruff>=0.1.0",
+]
+
+[tool.uv.sources]
+# Use PyPI for all dependencies (can be overridden for specific packages)
+
+# Ruff configuration (works great with UV)
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.black]
+line-length = 88
+target-version = ['py39']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+known_first_party = ["etherscan_mcp_server"]
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+] 
