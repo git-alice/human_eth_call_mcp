@@ -341,7 +341,24 @@ class HumanEthCallTester:
             tx_hashes = [
                 "0x1234567890123456789012345678901234567890123456789012345678901234",
                 "0x5678901234567890123456789012345678901234567890123456789012345678",
-                "0x9012345678901234567890123456789012345678901234567890123456789012"
+                "0x9012345678901234567890123456789012345678901234567890123456789012",
+                "0x1111111111111111111111111111111111111111111111111111111111111111",
+                "0x2222222222222222222222222222222222222222222222222222222222222222",
+                "0x3333333333333333333333333333333333333333333333333333333333333333",
+                "0x4444444444444444444444444444444444444444444444444444444444444444",
+                "0x5555555555555555555555555555555555555555555555555555555555555555",
+                "0x6666666666666666666666666666666666666666666666666666666666666666",
+                "0x7777777777777777777777777777777777777777777777777777777777777777",
+                "0x8888888888888888888888888888888888888888888888888888888888888888",
+                "0x9999999999999999999999999999999999999999999999999999999999999999",
+                "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                "0x0000000000000000000000000000000000000000000000000000000000000001",
+                "0x0000000000000000000000000000000000000000000000000000000000000002"
             ]
             
             await self.ctx.report_progress(50, 100)
@@ -354,7 +371,7 @@ class HumanEthCallTester:
                 await self.ctx.info(f"✅ Multiple transaction receipts processed: {successful_count}/{total_requested} successful")
                 
                 receipts_info = result.get("receipts_info", [])
-                for receipt_info in receipts_info[:3]:  # Show first 3 results
+                for receipt_info in receipts_info[:5]:  # Show first 5 results
                     tx_hash = receipt_info.get("tx_hash", "Unknown")
                     success = receipt_info.get("success", False)
                     if success:

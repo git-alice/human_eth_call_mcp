@@ -1165,10 +1165,10 @@ class EtherscanClient:
                 "error": "Transaction hashes list cannot be empty"
             }
         
-        if len(tx_hashes) > 5:
+        if len(tx_hashes) > 20:
             return {
                 "success": False,
-                "error": "Maximum 5 transaction hashes allowed"
+                "error": "Maximum 20 transaction hashes allowed"
             }
         
         try:

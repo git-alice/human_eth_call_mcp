@@ -45,30 +45,9 @@ bash scripts/cursor-install-mcp.sh
 5. **executeContractMethod** - Execute contract methods with auto encoding/decoding
 6. **getContractCreation** - Get contract deployer address and creation transaction hash (up to 5 contracts)
 7. **ethGetTransactionReceipt** - Get single transaction receipt with status, gas usage, and logs
-8. **ethGetTransactionReceipts** - Get multiple transaction receipts (up to 5 transactions) with status, gas usage, and logs
+8. **ethGetTransactionReceipts** - Get multiple transaction receipts (up to 20 transactions) with status, gas usage, and logs
 
 ## 📝 Configuration
 
 Set environment variable:
-```bash
-export ETHERSCAN_API_KEY=your_api_key_here
 ```
-
-Or create `.env` file:
-```env
-ETHERSCAN_API_KEY=your_api_key_here
-```
-
-## 🧪 Testing
-
-```bash
-uv run python tests/test_all_tools.py
-```
-
-## 📄 License
-
-MIT License
-
----
-
-**Made with ❤️ for the Web3 community** 

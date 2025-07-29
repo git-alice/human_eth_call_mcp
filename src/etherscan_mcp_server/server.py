@@ -382,11 +382,11 @@ async def ethGetTransactionReceipts(
     ctx: Context
 ) -> Dict[str, Any]:
     """
-    Get transaction receipts for up to 5 transactions.
+    Get transaction receipts for up to 20 transactions.
     
     Args:
         chainID: Blockchain ID (e.g., "1" for Ethereum, "56" for BSC, "137" for Polygon)
-        txHashes: Comma-separated list of transaction hashes (max 5)
+        txHashes: Comma-separated list of transaction hashes (max 20)
         
     Returns:
         Transaction receipts with status, gas usage, logs, and other details for each hash
@@ -400,10 +400,10 @@ async def ethGetTransactionReceipts(
             "error": "No valid transaction hashes provided"
         }
     
-    if len(hashes_list) > 5:
+    if len(hashes_list) > 20:
         return {
             "success": False,
-            "error": "Maximum 5 transaction hashes allowed"
+            "error": "Maximum 20 transaction hashes allowed"
         }
     
     await ctx.info(f"Getting transaction receipts for {len(hashes_list)} transaction(s) on {BlockchainConfig.get_network_name(chainID)}")
