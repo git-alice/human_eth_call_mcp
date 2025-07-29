@@ -105,12 +105,15 @@ fi
 
 MCP_CONFIG_FILE="$CURSOR_CONFIG_DIR/mcp.json"
 
+# Get current project directory
+PROJECT_DIR=$(pwd)
+
 # Create MCP configuration
 MCP_CONFIG='{
   "mcpServers": {
     "human-eth-call": {
       "command": "uv",
-      "args": ["run", "human-eth-call-mcp"],
+      "args": ["run", "--project", "'$PROJECT_DIR'", "human-eth-call-mcp"],
       "env": {
         "ETHERSCAN_API_KEY": "'$ETHERSCAN_API_KEY'"
       }
@@ -188,6 +191,7 @@ echo "3. Test with: uv run python tests/test_all_tools.py"
 echo ""
 echo "🔧 Configuration:"
 echo "- MCP config: $MCP_CONFIG_FILE"
+echo "- Project path: $PROJECT_DIR"
 echo "- Environment: .env"
 echo "- API key: $ETHERSCAN_API_KEY"
 echo ""
