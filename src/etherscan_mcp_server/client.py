@@ -20,6 +20,7 @@ from dotenv import load_dotenv
 from eth_abi import decode, encode
 from eth_utils import function_signature_to_4byte_selector
 from pydantic import BaseModel, Field, validator
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -1082,6 +1083,120 @@ class EtherscanClient:
             return {
                 "success": False,
                 "error": str(e),
+                "network": BlockchainConfig.get_network_name(chain_id)
+            }
+
+    async def get_timestamp_by_block_number(
+        self,
+        chain_id: str,
+        block_number: Union[str, int]
+    ) -> Dict[str, Any]:
+        """
+        Get UNIX timestamp for a given block number.
+        
+        Args:
+            chain_id: Blockchain ID
+            block_number: Block number (decimal int/str), hex string (0x...), or 'latest'
+        
+        Returns:
+            Dictionary with timestamp information
+        """
+        # Normalize tag for eth_getBlockByNumber
+        try:
+            tag: str
+            if isinstance(block_number, int):
+                if block_number < 0:
+                    raise ValueError("block_number cannot be negative")
+                tag = hex(block_number)
+            else:
+                bn_str = block_number.strip()
+                lower_bn = bn_str.lower()
+                if lower_bn == "latest" or lower_bn == "earliest" or lower_bn == "pending":
+                    tag = lower_bn
+                elif lower_bn.startswith("0x"):
+                    tag = lower_bn
+                else:
+                    # decimal string
+                    parsed = int(bn_str)
+                    if parsed < 0:
+                        raise ValueError("block_number cannot be negative")
+                    tag = hex(parsed)
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Invalid block_number: {str(e)}",
+                "block_number_input": block_number,
+                "network": BlockchainConfig.get_network_name(chain_id)
+            }
+
+        try:
+            block_result = await self.get_block_by_number(chain_id, tag)
+            if not block_result.get("success"):
+                return {
+                    "success": False,
+                    "error": block_result.get("error", "Failed to fetch block"),
+                    "block_number_input": block_number,
+                    "block_number_tag": tag,
+                    "network": BlockchainConfig.get_network_name(chain_id)
+                }
+
+            block = block_result.get("block") or {}
+            ts_hex = block.get("timestamp")
+
+            if ts_hex is None:
+                return {
+                    "success": False,
+                    "error": "Timestamp not found in block data",
+                    "block_number_input": block_number,
+                    "block_number_tag": tag,
+                    "network": BlockchainConfig.get_network_name(chain_id)
+                }
+
+            # Convert timestamp to int seconds
+            try:
+                if isinstance(ts_hex, str) and ts_hex.startswith("0x"):
+                    timestamp = int(ts_hex, 16)
+                else:
+                    timestamp = int(ts_hex)
+            except Exception as conv_err:
+                return {
+                    "success": False,
+                    "error": f"Failed to parse timestamp: {str(conv_err)}",
+                    "timestamp_raw": ts_hex,
+                    "block_number_input": block_number,
+                    "block_number_tag": tag,
+                    "network": BlockchainConfig.get_network_name(chain_id)
+                }
+
+            # Optional ISO8601 formatting
+            try:
+                iso_utc = datetime.fromtimestamp(timestamp, tz=timezone.utc).isoformat().replace("+00:00", "Z")
+            except Exception:
+                iso_utc = None
+
+            # Parse block number from response if possible
+            block_number_hex = block.get("number")
+            try:
+                block_number_int = int(block_number_hex, 16) if isinstance(block_number_hex, str) and block_number_hex.startswith("0x") else int(block_number_hex) if block_number_hex is not None else None
+            except Exception:
+                block_number_int = None
+
+            return {
+                "success": True,
+                "block_number_input": block_number,
+                "block_number_tag": tag,
+                "block_number": block_number_int,
+                "timestamp": timestamp,
+                "timestamp_hex": ts_hex if isinstance(ts_hex, str) and ts_hex.startswith("0x") else hex(timestamp),
+                "timestamp_iso": iso_utc,
+                "network": BlockchainConfig.get_network_name(chain_id)
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "block_number_input": block_number,
+                "block_number_tag": tag,
                 "network": BlockchainConfig.get_network_name(chain_id)
             }
     

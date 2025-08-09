@@ -446,6 +446,48 @@ async def ethGetTransactionReceipts(
 # Main Function
 # =============================================================================
 
+@mcp.tool()
+async def get_timestamp_by_block_number(
+    chainID: str,
+    blockNumber: str,
+    ctx: Context
+) -> Dict[str, Any]:
+    """
+    Get UNIX timestamp for a block number.
+
+    Args:
+        chainID: Blockchain ID (e.g., "1" for Ethereum)
+        blockNumber: Block number. Accepts decimal (e.g., "19000000"), hex (e.g., "0x121b3c0"), or 'latest'.
+
+    Returns:
+        Dictionary with timestamp and related fields
+    """
+    await ctx.info(f"Getting timestamp for block {blockNumber} on {BlockchainConfig.get_network_name(chainID)}")
+    await ctx.report_progress(10, 100)
+
+    async with EtherscanClient() as client:
+        try:
+            await ctx.report_progress(50, 100)
+            result = await client.get_timestamp_by_block_number(chainID, blockNumber)
+            await ctx.report_progress(90, 100)
+
+            if result.get("success"):
+                await ctx.info(f"Timestamp: {result.get('timestamp')} (ISO: {result.get('timestamp_iso', 'n/a')})")
+            else:
+                await ctx.error(f"Failed to get timestamp: {result.get('error', 'Unknown error')}")
+
+            await ctx.report_progress(100, 100)
+            return result
+        except Exception as e:
+            await ctx.error(f"Error getting timestamp by block number: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "block_number_input": blockNumber,
+                "network": BlockchainConfig.get_network_name(chainID)
+            }
+
+
 def main():
     """Run the MCP server."""
     asyncio.run(mcp.run())
