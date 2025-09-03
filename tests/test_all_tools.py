@@ -81,6 +81,26 @@ class HumanEthCallTester:
         """Initialize the client"""
         print("🚀 Setting up Human ETH Call MCP tester...")
         self.client = EtherscanClient()
+        
+        # Test block number normalization
+        print("🧪 Testing block number normalization...")
+        test_cases = [
+            (19000000, "0x121b3c0"),  # int to hex
+            ("19000000", "0x121b3c0"),  # decimal string to hex
+            ("0x121b3c0", "0x121b3c0"),  # hex string unchanged
+            ("latest", "latest"),  # special tag unchanged
+            (None, "latest"),  # None to latest
+        ]
+        
+        for input_val, expected in test_cases:
+            try:
+                result = self.client._normalize_block_tag(input_val)
+                if result == expected:
+                    print(f"  ✅ {input_val} -> {result}")
+                else:
+                    print(f"  ❌ {input_val} -> {result} (expected {expected})")
+            except Exception as e:
+                print(f"  ❌ {input_val} -> Error: {e}")
         print()
     
     async def test_chain(self, config: dict):
@@ -246,17 +266,34 @@ class HumanEthCallTester:
             method_abi = '{"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"}'
             
             await self.ctx.report_progress(30, 100)
+            # Test with latest block (default)
             result = await self.client.execute_contract_method(
                 chain_id, 
                 token_address, 
                 method_abi, 
                 ""  # No parameters for decimals()
             )
-            await self.ctx.report_progress(90, 100)
+            await self.ctx.report_progress(60, 100)
             
             if result["success"]:
                 decoded_data = result.get("decodedData", "N/A")
-                await self.ctx.info(f"✅ Contract method executed: decimals() = {decoded_data}")
+                await self.ctx.info(f"✅ Contract method executed (latest): decimals() = {decoded_data}")
+                
+                # Test with specific block number (int)
+                await self.ctx.info("Testing with specific block number (19000000)...")
+                result_block = await self.client.execute_contract_method(
+                    chain_id, 
+                    token_address, 
+                    method_abi, 
+                    "",  # No parameters for decimals()
+                    19000000  # Specific block number as int
+                )
+                
+                if result_block["success"]:
+                    decoded_data_block = result_block.get("decodedData", "N/A")
+                    await self.ctx.info(f"✅ Contract method executed (block 19000000): decimals() = {decoded_data_block}")
+                else:
+                    await self.ctx.info(f"⚠️ Block-specific call failed: {result_block.get('error', 'Unknown error')}")
             else:
                 await self.ctx.error(f"❌ Failed: {result.get('error', 'Unknown error')}")
             

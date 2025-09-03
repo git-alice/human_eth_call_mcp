@@ -282,7 +282,8 @@ async def executeContractMethod(
     contractAddress: str,
     methodABI: str,
     ctx: Context,
-    methodParams: str = ""
+    methodParams: str = "",
+    blockNumber: int = None
 ) -> Dict[str, Any]:
     """
     Execute a contract method with automatic ABI encoding and result decoding.
@@ -292,17 +293,20 @@ async def executeContractMethod(
         contractAddress: The contract address
         methodABI: JSON string containing the method ABI
         methodParams: Comma-separated parameters for the method (optional)
+        blockNumber: Block number for eth_call. If None, uses "latest". Integer values are automatically converted to hex format.
         
     Returns:
         Method execution result with decoded data
     """
-    await ctx.info(f"Executing contract method on {contractAddress} on {BlockchainConfig.get_network_name(chainID)}")
+    # Convert blockNumber to string for client, use "latest" if None
+    block_param = str(blockNumber) if blockNumber is not None else "latest"
+    await ctx.info(f"Executing contract method on {contractAddress} on {BlockchainConfig.get_network_name(chainID)} at block {block_param}")
     await ctx.report_progress(10, 100)
     
     async with EtherscanClient() as client:
         try:
             await ctx.report_progress(30, 100)
-            result = await client.execute_contract_method(chainID, contractAddress, methodABI, methodParams)
+            result = await client.execute_contract_method(chainID, contractAddress, methodABI, methodParams, block_param)
             await ctx.report_progress(90, 100)
             
             if result["success"]:

@@ -900,13 +900,57 @@ class EtherscanClient:
             # If conversion fails, return as is
             return param.strip()
     
+    def _normalize_block_tag(self, block_number: Union[str, int]) -> str:
+        """
+        Normalize block number to proper format for eth_call.
+        
+        Args:
+            block_number: Block number in various formats (int, decimal string, hex, latest, etc.)
+            
+        Returns:
+            Normalized block tag for eth_call
+        """
+        # Handle None or empty values
+        if block_number is None:
+            return "latest"
+        
+        # Handle int values directly
+        if isinstance(block_number, int):
+            if block_number < 0:
+                raise ValueError("Block number cannot be negative")
+            return hex(block_number)
+        
+        # Handle string values
+        if not block_number or str(block_number).strip() == "":
+            return "latest"
+        
+        block_str = str(block_number).strip().lower()
+        
+        # Handle special tags
+        if block_str in ["latest", "earliest", "pending"]:
+            return block_str
+        
+        # Handle hex format
+        if block_str.startswith("0x"):
+            return block_str
+        
+        # Handle decimal format - convert to hex
+        try:
+            decimal_num = int(block_str)
+            if decimal_num < 0:
+                raise ValueError("Block number cannot be negative")
+            return hex(decimal_num)
+        except ValueError:
+            # If it's not a valid decimal, return as is (might be a valid hex without 0x)
+            return block_str
+
     async def execute_contract_method(
         self,
         chain_id: str,
         contract_address: str,
         method_abi: str,
         method_params: str = "",
-        tag: str = "latest"
+        block_number: Union[str, int] = "latest"
     ) -> Dict[str, Any]:
         """
         Execute a smart contract method using ABI and parameters.
@@ -916,12 +960,15 @@ class EtherscanClient:
             contract_address: Smart contract address
             method_abi: JSON string with method ABI
             method_params: Comma-separated parameter values
-            tag: Block tag
+            block_number: Block number for eth_call. Accepts int, 'latest', 'earliest', 'pending', decimal string, or hex string. Int values are automatically converted to hex.
             
         Returns:
             Method execution result with decoded data
         """
         try:
+            # Normalize block number to proper format
+            tag = self._normalize_block_tag(block_number)
+            
             # Encode function call
             call_data = self.encode_function_call(method_abi, method_params)
             
