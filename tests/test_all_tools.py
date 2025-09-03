@@ -85,9 +85,9 @@ class HumanEthCallTester:
         # Test block number normalization
         print("🧪 Testing block number normalization...")
         test_cases = [
-            (19000000, "0x121b3c0"),  # int to hex
-            ("19000000", "0x121b3c0"),  # decimal string to hex
-            ("0x121b3c0", "0x121b3c0"),  # hex string unchanged
+            (19000000, "0x121eac0"),  # int to hex
+            ("19000000", "0x121eac0"),  # decimal string to hex
+            ("0x121eac0", "0x121eac0"),  # hex string unchanged
             ("latest", "latest"),  # special tag unchanged
             (None, "latest"),  # None to latest
         ]
