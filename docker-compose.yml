@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  etherscan-mcp-server:
+    build: .
+    container_name: human-eth-call-mcp
+    environment:
+      # Required: Set your Etherscan API key
+      - ETHERSCAN_API_KEY=${ETHERSCAN_API_KEY}
+      # Optional: Set log level
+      - LOG_LEVEL=INFO
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    # Uncomment if you need to mount a volume for persistent data
+    # volumes:
+    #   - ./data:/app/data

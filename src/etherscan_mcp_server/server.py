@@ -494,7 +494,7 @@ async def get_timestamp_by_block_number(
 
 def main():
     """Run the MCP server."""
-    asyncio.run(mcp.run())
+    mcp.run()
 
 
 if __name__ == "__main__":
