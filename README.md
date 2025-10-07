@@ -72,4 +72,5 @@ bash scripts/cursor-install-mcp.sh
 7. **ethGetTransactionReceipt** - Get single transaction receipt with status, gas usage, and logs
 8. **ethGetTransactionReceipts** - Get multiple transaction receipts (up to 20 transactions) with status, gas usage, and logs
 9. **getEventLogs** - Get event logs with topic filtering (supports event signatures and hex topics)
+10. **getTimestampByBlockNumber** - Get UNIX timestamp for a block number
 

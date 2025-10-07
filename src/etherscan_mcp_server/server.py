@@ -3,7 +3,7 @@
 Etherscan MCP Server
 
 A focused MCP (Model Context Protocol) server for interacting with Etherscan API.
-Provides 9 essential tools for token operations and smart contract interactions.
+Provides tools for token operations and smart contract interactions.
 
 Features:
 - Token balance and details retrieval
@@ -13,6 +13,7 @@ Features:
 - Transaction receipt information with status, gas usage, and logs
 - Batch transaction receipts retrieval - supports up to 5 transactions
 - Event logs retrieval with topic filtering (supports event signatures and hex topics)
+- Block timestamp retrieval for any block number
 - Multi-chain support (Ethereum, BSC, Polygon, Arbitrum, Optimism, etc.)
 """
 
@@ -526,7 +527,7 @@ async def getEventLogs(
 
 
 @mcp.tool()
-async def get_timestamp_by_block_number(
+async def getTimestampByBlockNumber(
     chainID: str,
     blockNumber: str,
     ctx: Context
