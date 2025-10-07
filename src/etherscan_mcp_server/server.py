@@ -457,7 +457,8 @@ async def getEventLogs(
     chainID: str,
     address: str,
     topic0: str,
-    ctx: Context
+    ctx: Context,
+    topic1: str = None
 ) -> Dict[str, Any]:
     """
     Get event logs for a contract address with topic filtering.
@@ -466,11 +467,16 @@ async def getEventLogs(
         chainID: Blockchain ID (e.g., "1" for Ethereum, "56" for BSC, "137" for Polygon)
         address: Contract address to get logs from
         topic0: Event signature (e.g., "Burn(address,uint256,uint256,address)") or hex topic0 (e.g., "0x...")
+        topic1: Optional second topic for filtering (e.g., "0x000000000000000000000000..."). 
+                In most cases, this parameter is not needed and can be omitted.
         
     Returns:
         Event logs with decoded information and examples (searches recent blocks, returns up to 5 examples)
     """
-    await ctx.info(f"Getting event logs for {address} on {BlockchainConfig.get_network_name(chainID)} with topic0: {topic0}")
+    topic_info = f"topic0: {topic0}"
+    if topic1:
+        topic_info += f", topic1: {topic1}"
+    await ctx.info(f"Getting event logs for {address} on {BlockchainConfig.get_network_name(chainID)} with {topic_info}")
     await ctx.report_progress(10, 100)
     
     async with EtherscanClient() as client:
@@ -482,7 +488,7 @@ async def getEventLogs(
                 fromBlock="0",  # Search from genesis
                 toBlock="latest",  # Search to latest block
                 topic0=topic0, 
-                topic1=None,  # No second topic filter
+                topic1=topic1,  # Optional second topic filter
                 page="1",  # First page
                 offset="5"  # Return up to 5 examples
             )
