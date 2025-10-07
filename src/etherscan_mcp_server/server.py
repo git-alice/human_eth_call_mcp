@@ -3,7 +3,7 @@
 Etherscan MCP Server
 
 A focused MCP (Model Context Protocol) server for interacting with Etherscan API.
-Provides 8 essential tools for token operations and smart contract interactions.
+Provides 9 essential tools for token operations and smart contract interactions.
 
 Features:
 - Token balance and details retrieval
@@ -12,6 +12,7 @@ Features:
 - Contract method execution with automatic ABI encoding/decoding
 - Transaction receipt information with status, gas usage, and logs
 - Batch transaction receipts retrieval - supports up to 5 transactions
+- Event logs retrieval with topic filtering (supports event signatures and hex topics)
 - Multi-chain support (Ethereum, BSC, Polygon, Arbitrum, Optimism, etc.)
 """
 
@@ -449,6 +450,80 @@ async def ethGetTransactionReceipts(
 # =============================================================================
 # Main Function
 # =============================================================================
+
+@mcp.tool()
+async def getEventLogs(
+    chainID: str,
+    address: str,
+    topic0: str,
+    ctx: Context,
+    fromBlock: str = "0",
+    toBlock: str = "latest",
+    topic1: str = None,
+    page: str = "1",
+    offset: str = "10"
+) -> Dict[str, Any]:
+    """
+    Get event logs for a contract address with topic filtering.
+    
+    Args:
+        chainID: Blockchain ID (e.g., "1" for Ethereum, "56" for BSC, "137" for Polygon)
+        address: Contract address to get logs from
+        topic0: Event signature (e.g., "Burn(address,uint256,uint256,address)") or hex topic0 (e.g., "0x...")
+        fromBlock: Starting block number (default: "0")
+        toBlock: Ending block number (default: "latest")
+        topic1: Optional second topic for filtering (default: None)
+        page: Page number (default: "1")
+        offset: Number of records to return (default: "10")
+        
+    Returns:
+        Event logs with decoded information and examples
+    """
+    await ctx.info(f"Getting event logs for {address} on {BlockchainConfig.get_network_name(chainID)} with topic0: {topic0}")
+    await ctx.report_progress(10, 100)
+    
+    async with EtherscanClient() as client:
+        try:
+            await ctx.report_progress(30, 100)
+            result = await client.get_event_logs(
+                chainID, 
+                address, 
+                fromBlock, 
+                toBlock, 
+                topic0, 
+                topic1, 
+                page, 
+                offset
+            )
+            await ctx.report_progress(90, 100)
+            
+            if result["success"]:
+                logs_count = result.get("logs_count", 0)
+                await ctx.info(f"Event logs retrieved: {logs_count} logs found")
+                
+                # Add example information if logs are found
+                if logs_count > 0:
+                    logs = result.get("logs", [])
+                    if logs:
+                        # Show first log as example
+                        first_log = logs[0]
+                        await ctx.info(f"Example log: Block {first_log.get('blockNumber', 'N/A')}, Tx {first_log.get('transactionHash', 'N/A')[:10]}...")
+            else:
+                await ctx.error(f"Failed to get event logs: {result.get('error', 'Unknown error')}")
+            
+            await ctx.report_progress(100, 100)
+            return result
+            
+        except Exception as e:
+            await ctx.error(f"Error getting event logs: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e),
+                "address": address,
+                "topic0": topic0,
+                "network": BlockchainConfig.get_network_name(chainID)
+            }
+
 
 @mcp.tool()
 async def get_timestamp_by_block_number(

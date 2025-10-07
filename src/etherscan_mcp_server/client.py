@@ -19,6 +19,7 @@ import httpx
 from dotenv import load_dotenv
 from eth_abi import decode, encode
 from eth_utils import function_signature_to_4byte_selector
+from eth_hash.auto import keccak
 from pydantic import BaseModel, Field, validator
 from datetime import datetime, timezone
 
@@ -1533,6 +1534,191 @@ class EtherscanClient:
                 "network": BlockchainConfig.get_network_name(chain_id)
             }
     
+    # =============================================================================
+    # Event Logs Operations
+    # =============================================================================
+    
+    def _keccak256(self, text: str) -> str:
+        """
+        Compute keccak256 hash of a string.
+        
+        Args:
+            text: String to hash
+            
+        Returns:
+            Hex string of the hash (with 0x prefix)
+        """
+        return "0x" + keccak(text.encode('utf-8')).hex()
+    
+    def _normalize_topic0(self, topic0: str) -> str:
+        """
+        Normalize topic0 to hex format.
+        
+        Args:
+            topic0: Either hex string (0x...) or event signature (e.g., "Burn(address,uint256,uint256,address)")
+            
+        Returns:
+            Hex string of the topic0
+        """
+        if not topic0:
+            raise ValueError("Topic0 cannot be empty")
+        
+        topic0 = topic0.strip()
+        
+        # If it's already a hex string, return as is
+        if topic0.startswith("0x"):
+            return topic0
+        
+        # If it looks like an event signature, hash it
+        if "(" in topic0 and ")" in topic0:
+            return self._keccak256(topic0)
+        
+        # If it's a hex string without 0x prefix, add it
+        if all(c in "0123456789abcdefABCDEF" for c in topic0):
+            return "0x" + topic0.lower()
+        
+        # Otherwise, treat as event signature and hash it
+        return self._keccak256(topic0)
+    
+    async def get_event_logs(
+        self,
+        chain_id: str,
+        address: str,
+        from_block: str = "0",
+        to_block: str = "latest",
+        topic0: Optional[str] = None,
+        topic1: Optional[str] = None,
+        page: str = "1",
+        offset: str = "10"
+    ) -> Dict[str, Any]:
+        """
+        Get event logs for a contract address with optional topic filtering.
+        
+        Args:
+            chain_id: Blockchain ID
+            address: Contract address
+            from_block: Starting block number (default: "0")
+            to_block: Ending block number (default: "latest")
+            topic0: Event signature or hex topic0 (e.g., "Burn(address,uint256,uint256,address)" or "0x...")
+            topic1: Optional second topic for filtering
+            page: Page number (default: "1")
+            offset: Number of records to return (default: "10")
+            
+        Returns:
+            Event logs with decoded information
+        """
+        params = {
+            "module": "logs",
+            "action": "getLogs",
+            "fromBlock": from_block,
+            "toBlock": to_block,
+            "address": address,
+            "page": page,
+            "offset": offset
+        }
+        
+        # Add topic filtering if provided
+        if topic0:
+            try:
+                normalized_topic0 = self._normalize_topic0(topic0)
+                params["topic0"] = normalized_topic0
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"Invalid topic0 format: {str(e)}",
+                    "address": address,
+                    "topic0_input": topic0
+                }
+        
+        if topic1:
+            try:
+                normalized_topic1 = self._normalize_topic0(topic1)
+                params["topic1"] = normalized_topic1
+                params["topic0_1_opr"] = "and"
+            except Exception as e:
+                return {
+                    "success": False,
+                    "error": f"Invalid topic1 format: {str(e)}",
+                    "address": address,
+                    "topic1_input": topic1
+                }
+        
+        try:
+            result = await self._make_request(chain_id, params, use_v2_api=True)
+            
+            if result["success"]:
+                logs = result["result"] if isinstance(result["result"], list) else []
+                
+                # Process logs to add additional information
+                processed_logs = []
+                for log in logs:
+                    processed_log = {
+                        "address": log.get("address", ""),
+                        "topics": log.get("topics", []),
+                        "data": log.get("data", ""),
+                        "blockNumber": log.get("blockNumber", ""),
+                        "blockHash": log.get("blockHash", ""),
+                        "timeStamp": log.get("timeStamp", ""),
+                        "gasPrice": log.get("gasPrice", ""),
+                        "gasUsed": log.get("gasUsed", ""),
+                        "logIndex": log.get("logIndex", ""),
+                        "transactionHash": log.get("transactionHash", ""),
+                        "transactionIndex": log.get("transactionIndex", "")
+                    }
+                    
+                    # Add topic0 signature if it's a known event
+                    if processed_log["topics"] and len(processed_log["topics"]) > 0:
+                        topic0_hex = processed_log["topics"][0]
+                        processed_log["topic0_hex"] = topic0_hex
+                        
+                        # Try to identify the event signature if topic0 was provided
+                        if topic0 and not topic0.startswith("0x"):
+                            processed_log["event_signature"] = topic0
+                    
+                    processed_logs.append(processed_log)
+                
+                return {
+                    "success": True,
+                    "address": address,
+                    "from_block": from_block,
+                    "to_block": to_block,
+                    "topic0": topic0,
+                    "topic1": topic1,
+                    "logs": processed_logs,
+                    "logs_count": len(processed_logs),
+                    "network": BlockchainConfig.get_network_name(chain_id)
+                }
+            else:
+                # Handle empty result case
+                if "No records found" in str(result.get("message", "")):
+                    return {
+                        "success": True,
+                        "address": address,
+                        "from_block": from_block,
+                        "to_block": to_block,
+                        "topic0": topic0,
+                        "topic1": topic1,
+                        "logs": [],
+                        "logs_count": 0,
+                        "message": "No event logs found for the specified criteria",
+                        "network": BlockchainConfig.get_network_name(chain_id)
+                    }
+                else:
+                    return {
+                        "success": False,
+                        "error": result.get("message", "Unknown error"),
+                        "address": address,
+                        "network": BlockchainConfig.get_network_name(chain_id)
+                    }
+                
+        except Exception as e:
+            return {
+                "success": False,
+                "error": str(e),
+                "address": address,
+                "network": BlockchainConfig.get_network_name(chain_id)
+            }
+
     # =============================================================================
     # Utility Methods
     # =============================================================================
