@@ -483,10 +483,10 @@ async def getEventLogs(
         try:
             await ctx.report_progress(30, 100)
             result = await client.get_event_logs(
-                chainID, 
-                address, 
-                fromBlock="0",  # Search from genesis
-                toBlock="latest",  # Search to latest block
+                chain_id=chainID, 
+                address=address, 
+                from_block="0",  # Search from genesis
+                to_block="latest",  # Search to latest block
                 topic0=topic0, 
                 topic1=topic1,  # Optional second topic filter
                 page="1",  # First page

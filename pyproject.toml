@@ -1,6 +1,6 @@
 [project]
 name = "human-eth-call-mcp"
-version = "0.2.0"
+version = "0.2.4"
 description = "A focused MCP (Model Context Protocol) server for token operations and smart contract interactions with Etherscan API"
 readme = "README.md"
 license = {text = "MIT"}
