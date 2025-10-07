@@ -71,6 +71,6 @@ bash scripts/cursor-install-mcp.sh
 6. **getContractCreation** - Get contract deployer address and creation transaction hash (up to 5 contracts)
 7. **ethGetTransactionReceipt** - Get single transaction receipt with status, gas usage, and logs
 8. **ethGetTransactionReceipts** - Get multiple transaction receipts (up to 20 transactions) with status, gas usage, and logs
-9. **getEventLogs** - Get event logs with topic filtering (supports event signatures and hex topics)
+9. **getEventLogs** - Get event logs with topic filtering (supports event signatures and hex topics, returns recent examples)
 10. **getTimestampByBlockNumber** - Get UNIX timestamp for a block number
 
