@@ -9,8 +9,11 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install UV package manager
-RUN pip install uv
+# Install UV package manager using official installer
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Add UV to PATH
+ENV PATH="/root/.local/bin:${PATH}"
 
 # Copy dependency files and README (needed for package build)
 COPY pyproject.toml uv.lock README.md ./

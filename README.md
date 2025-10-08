@@ -24,7 +24,7 @@ Add to your `~/.cursor/mcp.json`:
       "args": [
         "run","--rm","-i",
         "-e","ETHERSCAN_API_KEY",
-        "ghcr.io/git-alice/human_eth_call_mcp:0.2.0"
+        "ghcr.io/git-alice/human_eth_call_mcp:latest"
       ],
       "env": {
         "ETHERSCAN_API_KEY": "your_api_key_here"
@@ -43,7 +43,7 @@ Add to your `~/.cursor/mcp.json`:
       "command": "uvx",
       "args": [
         "--from",
-        "git+https://github.com/git-alice/human_eth_call_mcp.git@v0.2.0",
+        "git+https://github.com/git-alice/human_eth_call_mcp.git",
         "human-eth-call-mcp"
       ],
       "env": {
